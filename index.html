@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14463E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Activos">
+<title>Verificación de activos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+:root{--esm:#14463E;--tur:#24806E;--oro:#C9AE74;--perla:#F5F3EE;--graf:#262B2A;--gris:#8A9692;--lin:#E3DED3;
+  --ok:#2E7D4F;--warn:#B7791F;--bad:#B3261E;--info:#24806E;--bg:#F5F3EE;--card:#fff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--graf);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%}
+header.top{position:sticky;top:0;z-index:20;background:var(--esm);color:var(--perla);padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;display:flex;align-items:center;gap:10px}
+header.top .t{flex:1;min-width:0}
+header.top .t b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header.top .t small{color:#cfe3dc;font-size:12px}
+header.top button{background:transparent;border:1px solid rgba(245,243,238,.4);color:var(--perla);border-radius:8px;padding:7px 10px;font-size:14px}
+main{padding:12px 12px 96px;max-width:760px;margin:0 auto}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#fff;border-top:1px solid var(--lin);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:none;padding:9px 2px 8px;font-size:11.5px;color:var(--gris);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button.on{color:var(--esm);font-weight:600}
+nav.tabs svg{width:22px;height:22px}
+.card{background:var(--card);border:1px solid var(--lin);border-radius:12px;padding:12px;margin-bottom:10px}
+.card h3{margin:0 0 8px;font-size:15px;color:var(--esm)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.btn{appearance:none;border:1px solid var(--esm);background:var(--esm);color:#fff;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;text-align:center}
+.btn.sec{background:#fff;color:var(--esm)}
+.btn.warn{background:var(--bad);border-color:var(--bad)}
+.btn.small{padding:7px 10px;font-size:13px;border-radius:8px}
+.btn.block{display:block;width:100%}
+.btn:disabled{opacity:.45}
+label.f{display:block;font-size:12px;color:var(--gris);margin:8px 0 3px}
+input[type=text],input[type=password],input[type=search],select,textarea{width:100%;font-size:16px;padding:9px 10px;border:1px solid #cfc9bc;border-radius:8px;background:#fff;color:var(--graf)}
+textarea{min-height:64px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eee;color:var(--graf);white-space:nowrap}
+.st-PENDIENTE{background:#ECEAE4;color:#555}
+.st-EN_PROCESO{background:#FFF1D6;color:#7A4E00}
+.st-CORROBORADA{background:#DDEFF9;color:#0F4C75}
+.st-ETIQUETADA_PEND{background:#FBE3C2;color:#7A3E00}
+.st-CERRADA{background:#D8F0E1;color:#155D34}
+.st-NO_ENCONTRADA{background:#F7D9D6;color:#8A1C14}
+.sem{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+.sem.verde{background:var(--ok)}.sem.amarillo{background:#E0A800}.sem.rojo{background:var(--bad)}.sem.gris{background:#bbb}
+.alert{font-size:12.5px;border-radius:8px;padding:6px 8px;margin-top:6px;background:#FFF4E0;color:#6B4300;border-left:3px solid var(--warn)}
+.alert.bad{background:#FCE8E6;color:#7A1A12;border-color:var(--bad)}
+.alert.info{background:#E6F2EF;color:#0F4A3F;border-color:var(--tur)}
+.list .it{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--lin)}
+.list .it:last-child{border-bottom:0}
+.list .it img{width:54px;height:40px;object-fit:cover;border-radius:6px;background:#ddd;flex:none}
+.muted{color:var(--gris);font-size:12.5px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13.5px}
+.kv span:nth-child(odd){color:var(--gris)}
+.cmp{width:100%;border-collapse:collapse;font-size:13px}
+.cmp th{font-size:11px;color:var(--gris);text-align:left;font-weight:600;padding:3px 4px;border-bottom:1px solid var(--lin)}
+.cmp td{padding:4px;border-bottom:1px solid var(--lin);vertical-align:top;word-break:break-word}
+.cmp td:first-child{white-space:nowrap;width:1%;color:var(--gris)}
+.cmp td.diff{background:#FCE8E6}
+.cmp td.eq{background:#E3F4EA}
+.photo{width:100%;max-height:260px;object-fit:contain;background:#222;border-radius:10px;display:block}
+.ph-row{display:flex;gap:8px;flex-wrap:wrap}
+.ph{flex:1 1 140px;border:1px dashed #cfc9bc;border-radius:10px;padding:8px;text-align:center;background:#fff}
+.ph img{width:100%;height:110px;object-fit:cover;border-radius:6px;display:block;margin-bottom:6px}
+.ph .lbl{font-size:12px;font-weight:600;color:var(--esm);margin-bottom:4px}
+.seg{display:flex;border:1px solid var(--esm);border-radius:9px;overflow:hidden}
+.seg button{flex:1;border:0;background:#fff;color:var(--esm);padding:9px 4px;font-size:13.5px;font-weight:600}
+.seg button.on{background:var(--esm);color:#fff}
+.bar{height:8px;background:#e7e3da;border-radius:99px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.modal .sheet{background:var(--bg);width:100%;max-width:760px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 12px calc(14px + env(safe-area-inset-bottom))}
+.modal .sheet h2{margin:2px 0 10px;font-size:17px;color:var(--esm)}
+#scan{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column}
+#scan video{flex:1;width:100%;object-fit:cover}
+#scan .ov{position:absolute;left:50%;top:42%;width:64vw;max-width:300px;aspect-ratio:1;transform:translate(-50%,-50%);border:3px solid var(--oro);border-radius:16px;box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
+#scan .bt{padding:12px;display:flex;gap:8px;background:#111;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--graf);color:#fff;padding:9px 14px;border-radius:10px;font-size:14px;z-index:80;display:none;max-width:90vw;text-align:center}
+.hide{display:none!important}
+.tag{font-size:11px;padding:1px 6px;border-radius:5px;background:#EEE;color:#444;margin-left:4px}
+.secitem{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--lin)}
+.secitem:last-child{border-bottom:0}
+.secitem .n{font-weight:700;color:var(--esm);width:42px}
+h1.pg{font-size:18px;color:var(--esm);margin:4px 2px 10px}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:25;width:58px;height:58px;border-radius:50%;background:var(--oro);border:0;color:var(--esm);box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+.fab svg{width:28px;height:28px}
+</style>
+</head>
+<body>
+<header class="top"><div class="t"><b id="hTitle">Verificación de activos</b><small id="hSub">L´Arkad · Cortyvis 2026</small></div><button id="hBack" class="hide">← Atrás</button></header>
+<main id="app"></main>
+<button class="fab hide" id="fab" aria-label="Escanear QR"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 12h10"/></svg></button>
+<nav class="tabs hide" id="tabs">
+  <button data-t="secciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Secciones</button>
+  <button data-t="contabilidad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Contabilidad</button>
+  <button data-t="coordinador"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>Coordinador</button>
+  <button data-t="exportar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Exportar</button>
+</nav>
+<div id="toast"></div>
+<input type="file" id="fileCam" accept="image/*" capture="environment" class="hide">
+<input type="file" id="fileAny" class="hide">
+<script src="app.js"></script>
+</body>
+</html>
